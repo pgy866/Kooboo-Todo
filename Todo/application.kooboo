@@ -1,0 +1,13 @@
+<layout id="application">
+    <placeholder id="menu" k-omit="">
+        <view id="menu"></view>
+    </placeholder>
+    <placeholder id="aside" k-omit="">
+        <view id="application-aside"></view>
+        
+    </placeholder>
+    <placeholder id="main" k-omit="">
+        <view id="application-meeting-room"></view>
+        <view id="employee-info"></view>
+    </placeholder>
+</layout>

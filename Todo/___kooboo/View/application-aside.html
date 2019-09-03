@@ -1,0 +1,15 @@
+<script engine="kscript">
+    var username = k.user.userName;
+    var user = k.database.user.find('username', username);
+    var employeeInfoRightTb = k.database.employeeInfoRight.find('employeeInfoRight', user.usertype);
+    if (employeeInfoRightTb) {
+        var usertype = true;
+    } else {
+        var usertype = false;
+    }
+</script>
+<ul class="nav nav-stacked aside" role="tablist">
+<!-- Nav tabs -->
+    <li role="presentation" class="active"><a href="#application-meeting-room" aria-controls="application-meeting-room" role="tab" data-toggle="tab">预定会议室</a></li>
+    <li role="presentation"><a href="#employee-info" aria-controls="employee-info" role="tab" data-toggle="tab" k-if="usertype">录入员工资料</a></li>
+</ul>

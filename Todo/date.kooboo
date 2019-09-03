@@ -1,0 +1,14 @@
+<layout id="date">
+    <placeholder id="menu" k-omit="">
+        <view id="menu"></view>
+    </placeholder>
+    <placeholder id="aside" k-omit="">
+        <view id="date-aside"></view>
+    </placeholder>
+    <placeholder id="main" k-omit="">
+        <view id="date-task-overview"></view>
+        <view id="date-my-task"></view>
+        <view id="date-all-task"></view>
+        <view id="date-today-todo"></view>
+    </placeholder>
+</layout>

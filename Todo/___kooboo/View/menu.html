@@ -1,0 +1,483 @@
+<script engine="kscript">
+    var username = k.user.userName;
+    if (!username) {
+        k.response.redirect("/login");
+    } else {
+        var user = k.database.user.find('username', username)
+        if (user.usertype) {
+            var usertype = true;
+        }
+    }
+</script>
+<style>
+    [v-cloak] {
+        display: none !important;
+    }
+</style>
+<div class="menu" id="memberForm" v-cloak="">
+    <!-- notification part -->
+    <div class="inform-part">
+        <div class="inform-badge">
+            <el-badge class="item" :value="informLength">
+                <div @click="clickInform">
+                    <i class="el-icon-bell icon-lg"></i>
+                </div>
+            </el-badge>
+        </div>
+        <div :class="{'card-width':noShowInform}" class="inform-card">
+            <el-card v-if="showInformModal" v-loading="messageLoading">
+                <div class="overlay" @click="hideInformModal"></div>
+                <div slot="header" class="clearfix">
+                    <span class="card-title">消息通知<span v-if="maxNum" class="max-message-warn">(当前未读消息过多)</span></span>
+                </div>
+                <div class="natification-content">
+                    <ul><li v-for="(item, index) in getNotificationData" class="notification-li">
+                        <a :href="item.url + '&amp;pageNum=1'" @click="goDetial(item)" :class="{'marked-message': item.toRead}" id="goDetialLabel">{{ item.remindMessage }}
+                            <span class="read-label" v-if="item.toRead">已读</span></a>
+                            <!-- item.url -->
+                    </li></ul>
+                    <div v-if="!noShowInform">
+                        <a href="#" @click="getMoreData('getMore')" class="loading-more" v-if="loadMessageText">加载更多通知</a>
+                        <p class="loading-more" v-if="!loadMessageText">已显示全部通知</p>
+                    </div>
+                    <p v-if="noShowInform">没有新通知</p>
+                </div>
+                <div class="natification-footer" v-if="!noShowInform">
+                    <el-divider></el-divider>
+                    <el-tag class="num-tag-right" size="medium">共{{ allMessageLen }}条</el-tag>
+                    <span class="card-footer" @click="deleteAllNotification">清除所有通知</span>
+                </div>
+            </el-card>
+        </div>
+    </div>
+    <!--  menu start-->
+    <div class="menu-main">
+        <a href="/date" title="日程"><i class="el-icon-date icon-lg"></i></a>
+        <a href="/application" title="预定会议室"><i class="el-icon-menu icon-lg"></i></a>
+        <a href="/knowledge" k-if="usertype" title="资料库"><i class="el-icon-folder-opened icon-lg"></i></a>
+    </div>
+    <div class="main-extra">
+        <div class="show-message">
+            <el-tooltip effect="light" content="设置" placement="right">
+                <i class="el-icon-setting icon-lg setting-cursor" @click="showMember"></i>
+            </el-tooltip>
+            <el-tooltip effect="light" :content="logoutUser" placement="right">
+                <span class="username" k-content="username">Username</span>
+            </el-tooltip>
+            <!-- <a class="clickable logout" href="/api/logout">退出登录</a> -->
+
+            
+      <el-popover
+      placement="right"
+      width="160"
+      >
+      <p>是否确定需要退出</p>
+      <div style="text-align: right; margin: 0">
+        <el-button size="mini" type="text" @click="cancel">取消</el-button>
+        <el-button type="primary" size="mini" @click="ensure">确定</el-button>
+      </div>
+      <el-button slot="reference" circle >
+         <i class="el-icon-user-solid"></i>     
+          </el-button>
+       </el-popover>
+
+        </div>
+        <!--mymember form start-->
+        <el-card class="box-card" v-show="showMemberModal">
+            <div class="overlay" @click="hideModal('ruleForm')"></div>
+            <div slot="header" class="clearfix add-header">
+                <span @click="clickSup" :class="{'read-color': showCurrentMem}">我的上级 | </span>
+                <span @click="clickSub" :class="{'read-color': showAnotherMem}">我的下级</span>
+                <el-button style="float: right; padding: 3px 0" type="text" @click="addMember">添加上级</el-button>
+            </div>
+            <div v-for="member in myMembers" class="text item flex-box" v-if="showCurrentMem"> {{member}}
+                <el-button type="danger" icon="el-icon-delete" size="mini" @click="delMember(member)" circle=""></el-button>
+            </div>
+            <div v-for="member in assignMember" class="text item flex-box" v-if="showAnotherMem"> {{member}}</div>
+        </el-card>
+        <!--myMember form end-->
+        <!--addMember form start-->
+        <el-card class="box-card" v-show="showAddMemberModal">
+            <div class="overlay" @click="hideModal('ruleForm')"></div>
+            <div slot="header" class="clearfix">
+                <span>添加上级</span>
+            </div>
+            <el-form :model="ruleForm" :rules="rules" ref="ruleForm">
+                <el-form-item prop="searchInput">
+                    <el-input placeholder="请输入内容" prefix-icon="el-icon-search" v-model="ruleForm.searchInput" clearable="">
+                    </el-input>
+                    <el-row id="search-btn">
+                        <el-button type="primary" plain="" @click="searchMember('ruleForm')">搜索</el-button>
+                    </el-row>
+                </el-form-item>
+            </el-form>
+            <div class="text item member" id="search-error" v-show="showSearchError">未找到该用户</div>
+            <div class="text item member" v-for="member in foundMembers" :key="member">
+                <i class="el-icon-circle-plus-outline icon-md" @click="clickMember(member)"></i>
+                {{member}}
+            </div>
+        </el-card>
+        <!--addMember form end-->
+    </div>
+    <!--  menu end-->
+</div>
+<script>
+    var vue = new Vue({
+        el: '#memberForm',
+        data() {
+            /*查询用户名验证*/
+            var validInput=(rule,value,callback)=>{
+                if(value == ''|| value == undefined){
+                    callback(new Error('内容不能为空'))
+                } else {
+                    if(/^\s+|\s+$/.test(value)){
+                        callback(new Error('内容首尾不能出现空格'))
+                    } else {
+                        callback()
+                    }
+                }
+            };
+            return {
+                /* natification */
+                messageLoading: false,
+                isActive: false,
+                showInformModal: false,
+                getNotificationData: [],
+                getUnReadData: [],
+                noShowInform: false,
+                loadMore: false,
+                maxNum: false,
+                loadMessageText: true,
+                informLength: 0,
+                prevNum: 30,
+                logoutUser: '',
+                totalLength: '',
+                allMessageLen: 0,
+                
+                /* menu */
+                showMemberModal: false,
+                showAddMemberModal: false,
+                showSearchError: false,
+                showCurrentMem: true,
+                showAnotherMem: false,
+                foundMembers: [],
+                myMembers: [],
+                assignMember: [],
+                ruleForm: {
+                    searchInput: '',
+                },
+                rules: {
+                    searchInput: [
+                        { required: true, validator: validInput, trigger: 'blur' }
+                    ],
+                }
+            }
+        },
+        created: function() {
+            this.getNotification()
+            this.setNotification()
+        },
+        methods: {
+            getData(readMessage, unReadMessage) {
+                this.getNotificationData = unReadMessage.concat(readMessage)
+                this.totalLength = this.getNotificationData.length
+
+                if (this.informLength === 0) {
+                    this.maxNum = false
+                } else if(this.informLength > 100){
+                    this.maxNum = true
+                } else {
+                    this.maxNum = false
+                }
+
+                if (this.totalLength === 0) {
+                    this.noShowInform = true
+                } else{
+                    this.noShowInform = false
+                }
+
+                if (this.totalLength < this.prevNum) {
+                    this.loadMessageText = false
+                } else {
+                    this.loadMessageText = true
+                }
+                this.getNotificationData.forEach((index) => {
+                    if (index.checkMessage == 'True') {
+                        index.toRead = true
+                    }else {
+                        index.toRead = false
+                    }
+                    if (index.startDate !== '') {
+                        index.url = 'date'
+                        index.remindMessage = '你的任务"'+ index.title+ '"即将到期, 点击查看'
+                    } else {
+                        index.url = 'knowledge-article-detail?id=' + index.typeId
+                        index.remindMessage = '你的文章"'+ index.title+ '"有' + index.messageLen + "新评论，点击查看"
+                    }
+                })
+                            
+            },
+            getMoreData (val) {
+                this.messageLoading = true
+                var prev = this.prevNum
+                if (val == 'getMore') {
+                    if (this.totalLength < prev) {
+                        this.loadMore = true
+                    } else {
+                        this.prevNum = this.prevNum + 30
+                        this.loadMore = false
+                    }
+                } else {
+                    this.loadMore = false
+                }
+                if (!this.loadMore) {
+                    axios.post('/api/notifinationMessage/get', {prev: this.prevNum}).then((res) => {
+                        if(res.data.success) {
+                            var data= res.data.model
+                            var unReadMessage = data.unReadNotification
+                            this.logoutUser = data.userName
+                            this.informLength = data.unReadLength
+                            this.allMessageLen = data.messageLength
+                            this.getData(data.readNotification, unReadMessage)
+                        }
+                    }).catch((err) => {console.log(err)})
+                }
+                this.messageLoading = false
+            },
+            getNotification () {
+                this.messageLoading = true
+                axios.get('/api/notifinationMessage/get').then((res) => {
+                    if(res.data.success) {
+                        var data= res.data.model
+                        var unReadMessage = data.unReadNotification
+                        this.logoutUser = data.userName
+                        this.informLength = data.unReadLength
+                        this.allMessageLen = data.messageLength
+                        this.getData(data.readNotification, unReadMessage)                        
+                        this.messageLoading = false
+                    }
+                }).catch((err) => {console.log(err)})
+
+            },
+            setNotification() {
+                window.setInterval(this.getMoreData, 1000*60)
+            },
+            clickInform() {
+                this.showInformModal = true;
+                this.getMoreData()
+            },
+            hideInformModal() {
+                this.showInformModal = false;
+            },
+            deleteAllNotification () {
+                if (confirm("确定清除所有通知吗?")) {
+                    this.messageLoading = true
+                    axios.post('/api/notifinationMessage/delete').then((res) => {
+                        if (res.data.success) {
+                             location.reload();
+                            this.messageLoading = false
+                        }
+                    }).catch((err) => {console.log(err)})
+                }
+            },
+            goDetial(val) {
+                this.isActive = true
+                if(!val.toRead) {
+                    val.toRead = this.isActive
+                    axios.post('/api/notifinationMessage/update', {data: val, params: 'updateMessage'}).then((res) => {}).catch((err) => {console.log(err)})
+                }
+            },
+
+            showMember() {
+                this.showAddMemberModal = false;
+                if (this.showMemberModal) {
+                    this.showMemberModal = false;
+                } else {
+                    this.showMemberModal = true;
+                    axios.post('api/member/get').then((res) => {
+                        if (res.data.success) {
+                            this.myMembers = res.data.model.membersName;
+                            this.assignMember = res.data.model.assignName;
+                        }
+                    }).catch((err) => {
+                        console.log(err)
+                    });
+                }
+            },
+            addMember() {
+                this.showMemberModal = false;
+                this.showAddMemberModal = true;
+                this.ruleForm.searchInput = '';
+                this.showSearchError = false;
+                this.foundMembers = [];
+            },
+            clickSup() {
+                this.showCurrentMem = true
+                this.showAnotherMem = false
+            },
+            clickSub() {
+                this.showAnotherMem = true
+                this.showCurrentMem = false
+            },
+            searchMember(formName) {
+                this.showSearchError = false
+                this.foundMembers = []
+                this.$refs[formName].validate((valid) => {
+                    if (valid) {
+                        if (this.ruleForm.searchInput != '') {
+                            var data = { username: this.ruleForm.searchInput }
+                            axios.post('/api/member/search', data).then((res) => {
+                                if (res.data.success) {
+                                    this.foundMembers = []
+                                    this.ruleForm.searchInput = ''
+                                    this.foundMembers.push(res.data.model.UserName)
+                                } else {
+                                    this.showSearchError = true;
+                                }
+                            }).catch((err) => {
+                                console.log(err)
+                            });
+                        }
+                    }
+                })
+
+            },
+            clickMember(member) {
+                if (confirm('该用户将看到你的任务管理状态，确定将其加入系统吗？')) {
+                    var data = { member: member }
+                    axios.post('/api/member/add', data).then((res) => {
+                        if (res.data.success) {
+                            this.showAddMemberModal = false
+                            this.showMemberModal = true
+                            this.myMembers = res.data.model
+                        }
+                        this.$message({
+                            message: res.data.message,
+                            type: 'success',
+                            center: true
+                        });
+                    }).catch((err) => {
+                        console.log(err)
+                    })
+                }
+            },
+            delMember(member) {
+                if (confirm('确定移除该用户吗')) {
+                    var data = {
+                        member: member
+                    }
+                    axios.post('/api/member/delete', data).then((res) => {
+                        this.$message({
+                            message: res.data.message,
+                            type: 'success',
+                            center: true
+                        });
+                        this.showMember()
+                    }).catch((err) => {console.log(err)})
+                }
+            },
+            hideModal(formName) {
+                this.showMemberModal = false;
+                this.showAddMemberModal = false;
+                this.$refs[formName].resetFields();
+            },
+            cancel() {
+                this.$router.push('/api/logout');
+            },
+            ensure() {
+                this.$router.push('/api/logout');
+            },
+
+        }
+    })
+</script>
+<style>
+    .add-header {
+        cursor: pointer;
+    }
+    .setting-cursor {
+        cursor: pointer;
+    }
+    .inform-part {
+        cursor: pointer;
+        margin-top: 20px;
+    }
+    .inform-badge {
+        text-align: center;
+    }
+    .inform-part .icon-lg {
+        font-size: 24px;
+    }
+    .menu-main {
+        margin-top: 35px;
+    }
+    .inform-card {
+        position: absolute;
+        width: 380px;
+        left: 100%;
+        top: 0;
+        z-index: 5;
+    }
+    .card-width {
+        width: 150px !important;
+    }
+    .inform-card .el-card__header {
+        font-size: 15px;
+    }
+    .inform-card .el-card__body {
+        padding: 0;
+    }
+    .inform-card .natification-content {
+        padding: 20px;
+        height: 150px;
+        overflow-y: auto;
+    }
+    .natification-content .loading-more {
+        margin-left: 15px;
+        color: #337ab7;
+        font-weight: 600;
+    }
+    .notification-li {
+        margin: 10px 0 10px 0;
+        padding-left: 15px;
+    }
+    .notification-li a{
+        color: #337ab7;
+    }
+    .notification-li .read-label {
+        display: inline-block;
+        background: burlywood;
+        color: white;
+        font-size: 12px;
+        padding: 2px;
+        margin-left: 5px;
+    }
+    .read-color {
+        color: #337ab7;
+    }
+    .notification-li .marked-message {
+        color: darkgray
+    }
+    .card-footer {
+        display: inline-block;
+        float: right;
+        color: cornflowerblue;
+        padding-right: 15px;
+        margin-top: 5px;
+    }
+    .natification-footer .el-divider {
+        margin: 15px 0;
+    }
+    .natification-footer .num-tag-right{
+        display: inline-block;
+        margin: 0 0 10px 15px !important;
+    }
+    .notification-li  a {
+        display: inline-block;
+        width: 95%;
+    }
+    .max-message-warn {
+        color: burlywood;
+        font-size: 12px;
+    }
+</style>

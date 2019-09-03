@@ -1,0 +1,5 @@
+<layout id="login">
+    <placeholder id="Main">
+        <view id="login"></view>
+    </placeholder>
+</layout>

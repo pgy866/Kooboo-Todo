@@ -1,0 +1,201 @@
+<div role="tabpanel" class="tab-pane active" id="application-meeting-room" v-loading="applicationLoading">
+    <!-- application meeting room page -->
+    <ul class="nav nav-tabs" role="tablist">
+        <li role="presentation" :class="{active: currentRoom == room.id }" v-for="room in rooms" @click="onChangeRoom(room.id)">
+            <a :href="'#'+room.id" :aria-controls="room.id" role="tab" data-toggle="tab">{{ room.name }}</a>
+        </li>
+    </ul>
+    <div class="tab-content table-content">
+        <div role="tabpanel" class="tab-pane active" id="room-1">
+            <template>
+                <el-table :data="tableData" :cell-style="cellStyle" style="width: 100%" class="table-scroll" max-height="600">
+                    <el-table-column fixed="" v-for="item in colConfigs" :prop="item.prop" :label="item.date" :key="item.date">
+                        <template slot="header" slot-scope="scope">
+                            <el-tooltip class="item" effect="dark" :content="item.label" placement="bottom">
+                              <span>{{item.date}}</span>
+                            </el-tooltip>
+                       </template> 
+                    </el-table-column>
+                </el-table>
+            </template>
+        </div>
+        <div v-for="(value,key) in rooms" role="tabpanel" class="tab-pane" :id="getId(key)">
+            <template>
+                <el-table :data="tableData" style="width: 100%">
+                    <el-table-column v-for="item in colConfigs" :prop="item.prop" :label="item.date" :key="item.date">
+                    </el-table-column>
+                </el-table>
+            </template>
+        </div>
+    </div>
+
+    <!-- application booking button -->
+    <div id="application-booking-mRoom">
+        <el-button type="primary" @click="showAddBooking">预约会议室</el-button>
+        <el-dialog :visible.sync="modalVisible" title="预定会议室" width="40%" center="" @close="hideBookingModal('bookingForm')" :close-on-click-modal="false" :close-on-press-escape="false">
+            <el-form :model="bookingForm" :rules="rules" ref="bookingForm" label-width="100px">
+                <el-form-item label="会议主题" prop="title">
+                    <el-input v-model="bookingForm.title" placeholder="请输入会议主题"></el-input>
+                </el-form-item>
+                <el-form-item label="会议室" prop="meetingRoom">
+                    <el-select v-model="bookingForm.meetingRoom" placeholder="请选择会议室">
+                        <el-option label="活动室大玻璃会议室" value="活动室大玻璃会议室"></el-option>
+                        <el-option label="活动室小玻璃会议室" value="活动室小玻璃会议室"></el-option>
+                        <el-option label="活动室沙发" value="活动室沙发"></el-option>
+                        <el-option label="gobear玻璃会议室" value="gobear玻璃会议室"></el-option>
+                        <el-option label="前台沙发" value="前台沙发"></el-option>
+                        <el-option label="财务室旁大会议室" value="财务室旁大会议室"></el-option>
+                        <el-option label="财务室旁小会议室" value="财务室旁小会议室"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="项目组" prop="team" style="width: 90%;">
+                    <el-select v-model="bookingForm.team" clearable="" placeholder="请选择项目组">
+                        <el-option v-for="item in teamsList" :key="item._id" :label="item.teamName" :value="item.teamName">
+                        </el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="开始时间" required="">
+                    <el-col :span="11">
+                        <el-form-item prop="date">
+                            <el-date-picker type="date" value-format="yyyy-MM-dd" placeholder="选择日期" v-model="bookingForm.date" style="width: 100%;" :picker-options="pickerArrivalDate"></el-date-picker>
+                        </el-form-item>
+                    </el-col>
+                    <el-col class="line" :span="2">-</el-col>
+                    <el-col :span="11">
+                        <el-form-item prop="startTime">
+                            <el-time-select placeholder="选择时间" :picker-options="{
+                                start: '08:30',
+                                step: '00:30',
+                                end: '18:30'
+                            }" v-model="bookingForm.startTime" style="width: 100%;">
+                            </el-time-select>
+                        </el-form-item>
+                    </el-col>
+                </el-form-item>
+                <el-form-item label="结束时间" required="">
+                    <el-col :span="11">
+                        <el-form-item prop="date">
+                            <el-date-picker type="date" value-format="yyyy-MM-dd" placeholder="选择日期" v-model="bookingForm.date" style="width: 100%;" :picker-options="pickerArrivalDate">
+                            </el-date-picker>
+                        </el-form-item>
+                    </el-col>
+                    <el-col class="line" :span="2">-</el-col>
+                    <el-col :span="11">
+                        <el-form-item prop="endTime">
+                            <el-time-select placeholder="选择时间" :picker-options="{
+                                start: '08:30',
+                                step: '00:30',
+                                end: '19:00'
+                            }" v-model="bookingForm.endTime" style="width: 100%;">
+                            </el-time-select>
+                        </el-form-item>
+                    </el-col>
+                </el-form-item>
+                <el-form-item label="与会人数" prop="number">
+                    <el-input-number v-model="bookingForm.number" :precision="0" :step="1" :min="1" :max="100"></el-input-number>
+                </el-form-item>
+            </el-form>
+            <span slot="footer" class="dialog-footer">
+                <el-button type="primary" @click="submitBooking('bookingForm')" :disabled="disabledBookBtn">立即预约</el-button>
+                <el-button @click="hideBookingModal('bookingForm')">取消</el-button>
+          </span>
+        </el-dialog>
+    </div>
+
+    <!-- application myBook button -->
+    <div id="application-my-book">
+        <el-button type="primary" @click="showMyBook" plain="" id="my-book-btn">我的预约</el-button>
+        <el-dialog title="我的预约"
+                    :visible.sync="myBookVisible"
+                    width="70%"
+                    @close="beforCloseModal"
+                    :close-on-click-modal="false"
+                    :close-on-press-escape="false"
+                    center=""
+                    v-loading="myBookLoading">
+            <template>
+                <div class="mybook-model">
+                    <el-tag class="num-tag-left">共{{myBookData.length}}条</el-tag>
+                    <el-button size="mini" type="danger" class="delete-all-data" @click="deleteAllData" plain>删除全部预约</el-button>
+                    <el-table :data="myBookData.slice((pageNum-1)*pageSize, pageNum*pageSize)" style="width: 100%;">
+                        <el-table-column label="主题" min-width="12%">
+                            <template slot-scope="scope">
+                                <span>{{ scope.row.title }}</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="会议室" min-width="20%">
+                            <template slot-scope="scope">
+                                <span>{{ scope.row.meetingRoom }}</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="小组" min-width="10%">
+                            <template slot-scope="scope">
+                                <span>{{ scope.row.team }}</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="日期" min-width="10%">
+                            <template slot-scope="scope">
+                                <span>{{ scope.row.date }}</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="星期" min-width="10%">
+                            <template slot-scope="scope">
+                                <span>{{ scope.row.getDay }}</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="开始时间" min-width="10%">
+                            <template slot-scope="scope">
+                                <div slot="reference" class="name-wrapper">
+                                    <el-tag size="medium">{{ scope.row.startTime }}</el-tag>
+                                </div>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="结束时间" min-width="10%">
+                            <template slot-scope="scope">
+                                <div slot="reference" class="name-wrapper">
+                                    <el-tag size="medium">{{ scope.row.endTime }}</el-tag>
+                                </div>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="人数" min-width="8%">
+                            <template slot-scope="scope">
+                                <span style="margin-left: 8px">{{ scope.row.number }}</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="操作" min-width="10%">
+                            <template slot-scope="scope">
+                                <el-button size="mini" type="danger" @click="handleDelete(scope.$index, scope.row)">删除</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                    <el-pagination layout="prev, pager, next" :page-size="pageSize" @size-change="handleSizeChange" @current-change="handleCurrentChange" :hide-on-single-page="bookHidePage" :current-page="pageNum" :total="pageTotal" style="float: right">
+                    </el-pagination>
+                </div>
+            </template>
+        </el-dialog>
+    </div>
+</div>
+<style>
+@media screen and (max-width: 1500px) {
+    #application-meeting-room {
+        margin-top: 60px;
+    }
+    #application-booking-mRoom {
+        top: 10px;
+        right: 0;
+        left: 2%;
+    }
+}
+.mybook-model {
+    margin-bottom: 30px;
+}
+.mybook-model .el-table {
+    margin-bottom: 10px;
+}
+#application-meeting-room .el-table .el-table__header-wrapper{
+    border-top: 1px solid #EBEEF5;
+}
+.table-content {
+    padding: 0 15px 20px 10px;
+}
+</style>

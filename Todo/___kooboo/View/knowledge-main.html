@@ -1,0 +1,269 @@
+<style>
+    [v-cloak] {
+        display: none !important;
+    }
+</style>
+<div class="flex-box" id="knowledge-main" v-cloak="">
+        <el-container>
+            <el-container>
+                <el-aside width="180px">
+                    <el-tree class="aside tree-part" :data="categorys" :props="defaultProps" element-loading-text="数据加载中..." v-loading="showArticleLoad" @node-click="handleNodeClick" ref="treeNode" node-key="id" :default-expanded-keys="expandedKeys" highlight-current="">
+                    </el-tree>
+                </el-aside>
+                <el-main class="show-knowledge">
+                    <!-- Category checkItem  -->
+                    <el-card class="box-card-check" shadow="hover">
+                        <div>
+                            <h4>检查项</h4>
+                            <ul class="category-checkitem">
+                                <li v-for="(item, index) in categoryCheckData" :label="item._id" :key="item._id">{{index+1}}、{{item.checkItem}}</li>
+                            </ul>
+                        </div>
+                    </el-card>
+    
+                    <!-- Article list -->
+                    <el-card class="box-card-article" shadow="hover">
+                        <div>
+                            <h4>文章</h4>
+                            <el-tag class="num-tag-right">共{{articleTbData.length}}条</el-tag>
+                            <el-table :data="articleTbData.slice((pageNum-1)*pageSize, pageNum*pageSize)" stripe="" style="width: 100%;overflow-y: scroll" id="article-list" v-loading="showArticleLoad" element-loading-text="数据加载中..." class="article-table">
+                                <el-table-column prop="firstCategoryName" label="一级类别" min-width="15%">
+                                </el-table-column>
+                                <el-table-column prop="secLevelCategory" label="二级类别" min-width="15%">
+                                </el-table-column>
+                                <el-table-column prop="creator" label="作者" min-width="10%">
+                                </el-table-column>
+                                <el-table-column prop="date" label="发布时间" min-width="15%">
+                                </el-table-column>
+                                <el-table-column prop="title" label="标题" min-width="30%" style="text-align: center">
+                                </el-table-column>
+                                <el-table-column min-width="10%" label="文章详情">
+                                    <template slot-scope="scope">
+                                        <a class="clickable" :href="scope.row.url + addParams" @click="clearMarkedRead(scope.row)">查看详情</a>
+                                    </template>
+                                </el-table-column>
+                                <el-table-column min-width="5%">
+                                    <template slot-scope="scope">
+                                        <el-badge class="item" :value="scope.row.messageLen" v-if="scope.row.toRead">
+                                            <i class="el-icon-bell icon-lg message-warn-icon"></i>
+                                        </el-badge>
+                                    </template>
+                                </el-table-column>
+                            </el-table>
+                            <el-pagination layout="prev, pager, next" :page-size="pageSize" @size-change="handleSizeChange" @current-change="handleCurrentChange" :hide-on-single-page="hidePage" :current-page="pageNum" :total="pageTotal" style="float: right">
+                            </el-pagination>
+                        </div>
+                    </el-card>
+                </el-main>
+            </el-container>
+        </el-container>
+</div>
+
+<script>
+    var vue = new Vue({
+        el: '#knowledge-main',
+        data: {
+            /*category checkItem*/
+            checkedItemArr: [],
+            expandedKeys: [],
+            currentNodeVal: {},
+            addParams: '',
+            highlightCurrent: true,
+            currentColor: 0,
+            /*article list data*/
+            showArticleLoad: false,
+            pageTotal: 0,
+            pageSize: 5,
+            pageNum: 1,
+            hidePage: true,
+            articleTbData: [],
+            categoryCheckData: [],
+            categorys: [],
+            defaultProps: {
+                children: 'children',
+                label: 'label',
+            }
+        },
+         created () {
+            this.showArticleLoad = true
+                axios.post('/api/category/get').then((res) => {
+                    if (res.data.success) {
+                        this.$data.categorys = res.data.model.categoryArr;
+                        this.articleTbData = res.data.model.articles;
+                        this.articleTbData.forEach(index => {
+                            index.url = "/knowledge-article-detail?id=" + index._id
+                        })
+                        
+                        this.pageTotal = this.articleTbData.length
+                        if (this.pageTotal > this.pageSize) {
+                            this.hidePage = false
+                        } else {
+                            this.hidePage = true
+                        }
+                        var articleNotification = res.data.model.articleNotification;
+                        /*文章未读评论通知*/
+                        this.articleTbData.forEach(item => {
+                            articleNotification.forEach(index => {
+                                if(index.typeId == item._id) {
+                                    item.toRead = true
+                                    item.messageLen = index.messageLen
+                                }
+                            })
+                        })
+                        // 页面参数定位   
+                        var locationUrl = location.search; //获取url中"?"符后的字串
+                        if (locationUrl.indexOf("?") != -1) {
+                            var theRequest = {};
+                            var str = locationUrl.substr(1);
+                            strArr = str.split("&");
+                            for(var i = 0; i < strArr.length; i ++) {
+                                theRequest[strArr[i].split("=")[0]]=unescape(strArr[i].split("=")[1]);
+                            }
+                            this.pageNum = parseInt(theRequest.pageNum)
+                            var firstNode = parseInt(theRequest.firstNode)
+                            var secondNode = parseInt(theRequest.secondNode)
+                            if (firstNode && secondNode) {
+                                this.expandedKeys = [firstNode, secondNode]
+                                this.currentColor = secondNode
+                                var showFirSite = this.categorys.find(item => {
+                                    return firstNode == item.id
+                                })
+                                var showSecSite = showFirSite.children.find(item => {
+                                    return secondNode == item.id
+                                })
+                                this.handleNodeClick(showSecSite, 'initialVal')
+                            } else if (firstNode && !secondNode) {
+                                this.currentColor = firstNode
+                                this.expandedKeys = [0]
+                                var showFirSite = this.categorys.find(item => {
+                                    return firstNode == item.id
+                                })
+                                this.handleNodeClick(showFirSite, 'initialVal')
+                            } else {
+                                this.showArticleLoad = false
+                            }
+                            this.$nextTick(function(){
+                                this.$refs.treeNode.setCurrentKey(this.currentColor);
+                            })
+                        } else {
+                            this.pageNum = 1
+                            this.expandedKeys = []
+                            this.showArticleLoad = false
+                        }
+                    }
+                })
+        },
+        methods: {
+            handleNodeClick(data, val) {
+                this.showArticleLoad = true
+                if (val != 'initialVal') {
+                    this.pageNum = 1
+                }
+                this.currentNodeVal = data
+                axios.post('/api/article/get', data).then((res) => {
+                    if (res.data.success){
+                        this.articleTbData = res.data.model.allArticle
+                        this.articleTbData.forEach(index => {
+                            index.url = "/knowledge-article-detail?id=" + index._id
+                        })
+                        this.categoryCheckData = res.data.model.checkItemData
+                        
+                        this.pageTotal = this.articleTbData.length
+                        if (this.pageTotal > this.pageSize) {
+                            this.hidePage = false
+                        } else {
+                            this.hidePage = true
+                        }
+                        var articleNotification = res.data.model.articleNotification;
+                       /*Article notification*/
+                        this.articleTbData.forEach(item => {
+                            /*Match the length of the article's unread comments*/
+                            articleNotification.forEach(index => {
+                                if(index.typeId == item._id) {
+                                    item.toRead = true
+                                    item.messageLen = index.messageLen
+                                }
+                            })
+                        })
+                        this.showArticleLoad = false
+                    }
+                })
+            },
+            handleSizeChange (size) {
+                this.pagesize = size;
+            },
+            // 初始页currentPage、初始每页数据数pagesize和数据data
+            handleCurrentChange (index) {
+                this.pageNum = index
+            },
+            clearMarkedRead(val) {
+                if(this.currentNodeVal.$treeNodeId && !this.currentNodeVal.children) {
+                    this.addParams = '&pageNum=' + this.pageNum + '&firstNode=' + this.currentNodeVal.parentId + '&secondNode=' + this.currentNodeVal.id
+                } else if (this.currentNodeVal.children && this.currentNodeVal.$treeNodeId) {
+                    this.addParams = '&pageNum=' + this.pageNum + '&firstNode=' + this.currentNodeVal.id
+                } else {
+                    this.addParams = '&pageNum=' + this.pageNum
+                }
+                if (val.toRead === true) {
+                    axios.post('/api/notifinationMessage/update', {data: val, params: 'updateArticleMessage'}).then((res) => {
+                    }).catch((err) => {console.log(err)})
+                }
+            }
+        }
+    })
+</script>
+<style>
+.main-content {
+    padding: 3%;
+}
+.show-knowledge .box-card-check{
+    width: 95%;
+    margin: 50px auto;
+}
+.show-knowledge .box-card-article{
+    width: 95%;
+    margin: 25px auto;
+}
+.show-knowledge .el-card__body {
+    height: 100%;
+}
+.el-checkbox-group {
+    margin: 10px 0 0 10px;
+}
+.category-checkitem {
+    margin: 0 50px 0 50px;
+}
+.message-warn-icon {
+    font-size: 18px;
+    margin-top: 10px;
+}
+.box-card-article.el-badge {
+    margin: 0;
+}
+.box-card-article .article-table {
+    overflow-y: hidden !important;
+}
+.box-card-article .el-badge__content.is-fixed {
+    top: 10px;
+    width: 18px;
+    font-size: 12px;
+    padding: 0;
+}
+ #knowledge-main .num-tag-right {
+    float: right;
+    margin: -38px 10px 0 0;
+ }
+ #knowledge-main .el-tree .el-tree-node__children .el-tree-node__content .el-tree-node__label {
+     display: inline-block;
+     overflow: hidden;
+     text-overflow: ellipsis;
+     white-space: nowrap;
+ }
+ .category-checkitem li {
+     float: left;
+     margin: 0 3% 15px 3%;
+ }
+ .el-tree-node.is-current > .el-tree-node__content {
+    background-color: #c2d6ea !important
+ }
+</style>

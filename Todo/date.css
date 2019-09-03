@@ -1,0 +1,58 @@
+/* menu */
+.menu-main a .el-icon-date {
+    background: white;
+}
+
+/* add-model */
+.tox-tinymce {
+    height: 240px;
+}
+
+#date-add-task #add-modal {
+    float: right;
+    margin: 5% 5% 0 0;
+    color: white;
+}
+.button-add-warn {
+    font-size: 12px;
+    color: chocolate;
+}
+.task-title-down {
+    margin-left: 10px;
+}
+
+.task-check-item {
+    display: inline-block;
+    margin: 0 20px 0 20px;
+}
+
+/* calendar */
+.fc-toolbar.fc-header-toolbar {
+    margin-top: 1.5em;
+    padding-left: 1.5em;
+    padding-right: 1.5em;
+}
+
+th.fc-day-header.fc-widget-header {
+    padding-top: 15px;
+    padding-bottom: 15px;
+}
+
+#date-my-task{
+    padding-right: 10px;
+}
+
+/*  date-task-overview  */
+#date-task-overview>ul.nav.nav-tabs,
+#date-all-task>ul.nav.nav-tabs,
+#date-today-todo>ul.nav.nav-tabs {
+    margin-top: 15px;
+    margin-bottom: 15px;
+}
+
+/* .el-table__header-wrapper .has-gutter th {
+    text-align: center;
+}
+.el-table__body-wrapper .el-table__row td {
+    text-align: center;
+} */

@@ -1,0 +1,6 @@
+<layout id="knowledge-article-detail">
+    <placeholder id="main" k-omit="">
+        <view id="knowledge-article-detail"></view>
+        
+    </placeholder>
+</layout>

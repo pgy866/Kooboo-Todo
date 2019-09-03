@@ -1,0 +1,167 @@
+/* menu */
+.menu-main a .el-icon-folder-opened {
+     background: white;
+}
+
+/*  knowledge-add-article  */
+input[type=file] {
+     display: none;
+}
+.el-tree-node__label {
+     font-size: 16px;
+}
+.el-upload__tip {
+     display: inline-block;
+     margin-left: 10px;
+}
+
+#knowledge-my-category #my-category-btn {
+     display: inline-block;
+     position: absolute;
+     top: 10px;
+     right: 60px;
+ }
+
+ #knowledge-my-article #my-article-btn {
+     display: inline-block;
+     position: absolute;
+     top: 10px;
+     right: 180px;
+ }
+
+ .add-article,
+ .add-category{
+     display: inline-block;
+     cursor: pointer;
+     position: relative;
+     left: 45px;
+     top: -40px;
+     margin-left: 10px;
+ }
+
+#knowledge-my-article .num-tag-right {
+     float: right !important;
+     margin-bottom: 15px;
+     margin-right: 2% !important;
+ }
+#knowledge-my-category .num-tag-right {
+     margin-right: 2% !important;
+     float: right !important;
+     margin-bottom: 15px;
+ }
+/* knowledge-main*/
+#knowledge-main {
+     width: 100%;
+}
+#knowledge-article-detail {
+     width: 100%;
+}
+.tree-part {
+     padding-top: 6px;
+}
+.tree-part .el-tree-node {
+     padding: 2px;
+}
+.tree-part .el-tree-node__content {
+     padding-top: 5px;
+}
+.el-table th {
+     padding: 16px 0px 
+}
+
+.article-detail .article-header {
+     position: fixed;
+     width: 100%;
+     height: auto!important;
+     padding: 0px 20px 10px;
+     z-index: 99;
+     background-color: #fff;
+     box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+ section#article-detail .el-main {
+     flex: 0;
+     min-height: 50%;
+     margin-top: 80px;
+ }
+
+.article-detail {
+     height: 100%;
+     overflow: scroll;
+}
+.detail-desc {
+     letter-spacing: 1px;
+     font-size: 18px;
+     color: #9a9a9a;
+     font-weight: 500;
+     padding-left: 15px;
+}
+.detail-desc img {
+     width: 90%;
+}
+
+.attachment {
+     margin-top: 5%;
+ }
+
+ .form-item label {
+     font-family: "Helvetica Neue", Helvetica, Arial, "Microsoft Yahei", "Hiragino Sans GB", "Heiti SC", "WenQuanYi Micro Hei", sans-serif;
+     font-size: 18px;
+     font-weight: 500;
+ }
+ .form-item ul>li {
+      padding-left: 15px;
+ }
+ 
+/* commentPart  */
+.article-detail .comment-part {
+     padding: 0 10px 80px 10px;
+     margin-top: 25%;
+}
+
+.btn-group {
+     line-height: 100%;
+}
+
+.chat-block {
+     display: flex;
+     width: 100%;
+     margin-top: 20px;
+ }
+
+ .user-avatar {
+     width: 34px;
+     height: 34px;
+     border-radius: 50%;
+     color: #409eff;
+     background: #fff;
+     border: 1px solid #409eff;
+     line-height: 34px;
+     text-align: center;
+     cursor: pointer;
+     margin-right: 6px;
+     flex-shrink: 0;
+ }
+
+ .chat-panel {
+     width: 94%;
+     box-shadow: #afafaf;
+     font-size: 14px;
+     line-height: 25px;
+ }
+
+ .comment-part .delete {
+     cursor: pointer;
+ }
+ .pull-right {
+     float: right !important;
+ }
+
+ /* .el-dialog__wrapper .el-table__header-wrapper .has-gutter th {
+     text-align: center;
+ }
+ .el-dialog__wrapper .el-table__body-wrapper .el-table__row td {
+     text-align: center;
+ }
+
+ */

@@ -1,0 +1,72 @@
+/* menu */
+.menu-main a .el-icon-menu {
+    background: white;
+}
+/*  application-meeting-room  */
+#application-meeting-room>ul.nav.nav-tabs,
+#application-meeting-room>ul.nav.nav-tabs {
+    margin-top: 15px;
+    margin-bottom: 15px;
+}
+
+#application-meeting-room .el-table td {
+    padding: 4px 0px;
+}
+@media screen and (max-width: 850px) {
+    #application-meeting-room .table-scroll {
+        overflow-x: scroll;
+    }
+}
+#application-meeting-room .el-table__body-wrapper {
+    overflow: hidden;
+}
+
+
+#application-meeting-room .el-table__body-wrapper .el-table__body tr:last-child {
+    display: none;
+}
+
+#application-meeting-room .el-dialog__wrapper .mybook-model .el-table__body tr:last-child {
+    display: table-row;
+}
+
+/*  application-booking-mRoom  */
+
+.el-col-2 {
+    text-align: center;
+}
+
+div#application-booking-mRoom {
+    display: inline-block;
+    position: absolute;
+    top: 10px;
+    right: 140px;
+}
+
+/*  application-my-book  */
+#application-my-book .num-tag-left {
+    margin: 0 0 10px 1%;
+}
+#application-my-book .delete-all-data {
+    float: right;
+    margin: 0 2% 10px 0;
+}
+div#application-my-book #my-book-btn {
+    display: inline-block;
+    position: absolute;
+    top: 10px;
+    right: 30px;
+}
+
+/* .el-dialog__body .el-table__header-wrapper .has-gutter th{
+    text-align: center;
+}
+.el-dialog__body .el-table__body-wrapper .el-table__row td {
+    text-align: center;
+}
+.el-table__fixed .el-table__fixed-header-wrapper tr th {
+    text-align: center;
+}
+.el-table__fixed .el-table__fixed-body-wrapper tr td {
+    text-align: center;
+} */

@@ -1,0 +1,167 @@
+<div role="tabpanel" class="tab-pane active" id="date-today-todo">
+    <el-table
+            :data="todoTable.slice((pageNum-1)*pageSize, pageNum*pageSize)"
+            style="width: 100%; margin-top: 1px;"
+            left=""
+            :row-class-name="tableRowClassName"
+            v-loading="todayLoading">
+        <el-table-column type="expand">
+            <template slot-scope="scope">
+                <el-form label-position="left" class="demo-table-expand">
+                    <el-form-item label="检查项:" v-if="scope.row.subTasks">
+                        <el-checkbox v-for="item in scope.row.subTasks" :label="item._id" :key="item._id" @change="checkboxSubTask($event, scope.row, item._id)" v-model="item.isCheck">
+                            {{item.taskItem}}
+                        </el-checkbox>
+                    </el-form-item>
+                    <el-form-item label="描述:">
+                        <span v-html="scope.row.desc"></span>
+                    </el-form-item>
+                </el-form>
+            </template>
+        </el-table-column>
+        <el-table-column min-width="5%">
+            <template slot-scope="scope">
+                <el-checkbox v-model="scope.row.allFinish" v-if="scope.row.subTasks" disabled=""></el-checkbox>
+                <el-checkbox prop="scope.row.singleFinish" v-model="scope.row.singleFinish" @change="checkboxSignleChange($event, scope.row)" v-else=""></el-checkbox>
+            </template>
+        </el-table-column>
+        <el-table-column label="状态" prop="status" min-width="19%"></el-table-column>
+        <el-table-column label="标题" prop="title" min-width="19%"></el-table-column>
+        <el-table-column label="任务类别" prop="secondCategory" min-width="19%"></el-table-column>
+        <el-table-column label="任务日期" prop="planDate" min-width="19%"></el-table-column>
+        <el-table-column label="创建人" prop="creator" min-width="19%"></el-table-column>
+    </el-table>
+    <el-pagination layout="prev, pager, next" :page-size="pageSize" @size-change="handleSizeChange" @current-change="handleCurrentChange" :hide-on-single-page="hidePage" :current-page="pageNum" :total="pageTotal">
+    </el-pagination>
+    <div class="submit-check" :class="{'submit-page-btn': sumbitBtnSty}">
+        <el-button icon="el-icon-check" type="primary" @click="submitFinishData">确认完成</el-button>
+    </div>
+</div>
+<script>
+    var vue = new Vue({
+        el: '#date-today-todo',
+        data: {
+            todoTable: [],
+            pageTotal: 0,
+            pageSize: 10,
+            pageNum: 1,
+            hidePage: true,
+            sumbitBtnSty: false,
+            todayLoading: false,
+        },
+        created() {
+            this.todayLoading = true
+            this.getTodayTask()
+        },
+        methods: {
+            tableRowClassName({ row, rowIndex }) {
+                if (row.status === '遗留任务') {
+                    return 'error-row'
+                }
+            },
+            handleSizeChange (size) {
+                this.pagesize = size;
+            },
+            // 初始页currentPage、初始每页数据数pagesize和数据data
+            handleCurrentChange (index) {
+                this.pageNum = index
+            },
+            getTodayTask() {
+                axios.get('/api/todayTask/get').then((res) => {
+                    if (res.data.success) {
+                        this.todoTable = res.data.model
+                        this.pageTotal = this.todoTable.length
+                        if (this.pageTotal > this.pageSize) {
+                            this.hidePage = false
+                            this.sumbitBtnSty = true
+                        }
+                        this.todayLoading = false
+                        if (this.pageTotal > 50) {
+                            var message = '当前未完成任务'+ this.pageTotal +'条，请尽快完成任务'
+                            this.$notify({
+                                title: '警告',
+                                message: message,
+                                type: 'warning',
+                                duration: 0,
+                                customClass: 'warn-message'
+                            });
+                        } else if (this.pageTotal == 0){
+                            this.$notify.success({
+                                message: '当前没有需要完成的任务',
+                                showClose: false
+                            });
+                        }
+                    }
+                })
+            },
+            checkboxSubTask ($event, row, val) {
+                var length = 0
+                row.subTasks.forEach(index => {
+                    if(index.isCheck == true) {
+                        length ++
+                    }
+                })
+
+                if (length == row.subTasks.length) {
+                    row.allFinish = true
+                } else {
+                    row.allFinish = false
+                }
+                row.isFinished = row.allFinish
+            },
+            checkboxSignleChange (val, row) {
+                row.isFinished = row.singleFinish
+            },
+            submitFinishData(val) {
+                this.todayLoading = true
+                axios.post('/api/finishTask/update', {todo: this.todoTable}).then((res) => {
+                    if (res.data.success) {
+                        this.$message({
+                            message: res.data.message,
+                            type: 'success',
+                            center: true
+                        });
+                        this.todayLoading = false
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1000)
+                    }
+                })
+
+            }
+        }
+    })
+</script>
+<style>
+    .demo-table-expand {
+        font-size: 0;
+    }
+
+    .demo-table-expand label {
+        width: 90px;
+        color: #99a9bf;
+    }
+
+    .demo-table-expand .el-form-item {
+        margin-right: 0;
+        margin-bottom: 0;
+    }
+    .submit-check {
+        float: right;
+        margin: 25px;
+    }
+    .submit-page-btn {
+        float: left;
+        margin: 15px 0 0 3%;
+    }
+    .el-pagination {
+        float: right;
+        margin-top: 20px;
+    }
+    #date-today-todo .el-table .el-table__header-wrapper{
+        border-top: 1px solid #EBEEF5;
+    }
+    .warn-message .el-notification__group  .el-notification__content p {
+        font-weight: 600;
+    }
+</style>

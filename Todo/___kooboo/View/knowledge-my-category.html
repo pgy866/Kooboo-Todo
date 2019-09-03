@@ -1,0 +1,306 @@
+<!-- <div id="knowledge-my-category"> -->
+<div role="tabpanel" class="tab-pane" id="knowledge-my-category">
+    <el-button type="primary" plain="" @click="showMyCategoryModal" id="my-category-btn">管理类别</el-button>
+
+    <!-- According to the category -->
+    <el-dialog title="类别  |" :visible.sync="myCategoryVisible" :close-on-click-modal="false" :close-on-press-escape="false" @close="beforCloseModal">
+        <h4 class="clickable add-category" @click="showCategoryModal">创建新类别</h4>
+        <template>
+            <div class="category-list">
+                <el-tag class="num-tag-right">共{{myCategoryTable.length}}条</el-tag>
+                <el-table :data="myCategoryTable.slice((pageNum-1)*pageSize, pageNum*pageSize)" style="width: 100%;" v-loading="categoryLoad">
+                    <el-table-column type="expand" min-width="20%">
+                        <template slot-scope="scope">
+                            <el-form label-position="left" class="demo-table-expand">
+                                <el-form-item label="检查项:">
+                                    <el-checkbox v-for="item in scope.row.checkItemsArr" :label="item._id" :key="item._id" disabled="">
+                                        {{item.checkItem}}</el-checkbox>
+                                </el-form-item>
+                            </el-form>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="一级类别" min-width="25%" prop="firstCategoryName">
+                    </el-table-column>
+                    <el-table-column label="二级类别" min-width="25%" prop="secLevelCategory">
+                    </el-table-column>
+                    <el-table-column label="操作" min-width="20%">
+                        <template slot-scope="scope">
+                            <el-button size="mini" type="danger" @click="handleDelete(scope.$index, scope.row)">删除类别
+                            </el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+                <el-pagination
+                    layout="prev, pager, next"
+                    :page-size="pageSize"
+                    @size-change="handleSizeChange"
+                    @current-change="handleCurrentChange"
+                    :hide-on-single-page="hidePage"
+                    :current-page="pageNum"
+                    :total="pageTotal"
+                    style="float: right">
+                </el-pagination>
+            </div>
+        </template>
+
+        <!-- Add category Modal -->
+        <el-dialog :visible.sync="addCategoryModalVisible" title="创建类别" width="40%" @close="hideCategoryModal('categoryForm')" :close-on-click-modal="false" :close-on-press-escape="false" append-to-body="" center="">
+            <el-form :model="categoryForm" :rules="rules" ref="categoryForm">
+                <el-form-item label="请选择一级类别:" class="first-level" prop="firLevelCategory">
+                    <el-select v-model="categoryForm.firLevelCategory" placeholder="请选择">
+                        <el-option v-for="item in firLevelCategoryArr" :key="item.value" :label="item.label" :value="item.value">
+                        </el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="请输入二级类别:" prop="secLevelCategory">
+                    <el-input v-model.trim="categoryForm.secLevelCategory" placeholder="请输入内容"></el-input>
+                </el-form-item>
+                <el-form-item label="添加检查项" prop="checkItemInput">
+                    <el-input v-model="categoryForm.checkItemInput" placeholder="请输入内容" @keyup.enter.native="submitCheckItem">
+                        <el-button slot="append" icon="el-icon-check" @click="submitCheckItem"></el-button>
+                    </el-input>
+                </el-form-item>
+                <el-form-item prop="checkItemsArr">
+                    <el-tag :key="index" v-for="(item,index) in categoryForm.checkItemsArr" closable="" :disable-transitions="false" @close="handleClose(item)">
+                        {{item}}
+                        </el-tag>
+                </el-form-item>
+            </el-form>
+            <span slot="footer" class="dialog-footer">
+                <el-button type="primary" @click="onSubmit('categoryForm')" :disabled="addCategoryBtn">立即创建</el-button>
+                <el-button @click="hideCategoryModal('categoryForm')">取消</el-button>
+            </span>
+        </el-dialog>
+    </el-dialog>
+</div>
+<style>
+    .demo-table-expand {
+        font-size: 0;
+    }
+
+    .demo-table-expand label {
+        width: 90px;
+        color: #99a9bf;
+    }
+
+    .demo-table-expand .el-form-item {
+        margin-right: 0;
+        margin-bottom: 0;
+    }
+    .first-level .el-form-item__label{
+        float: inherit;
+    }
+    .el-dialog__wrapper .el-dialog__body .el-tag {
+        margin-right: 15px;
+    }
+    .category-list {
+        margin-bottom: 30px;
+    }
+    .category-list .el-table {
+        margin-bottom: 10px;
+    }
+    .el-dialog__body {
+        padding: 0 20px 30px 20px;
+    }
+</style>
+<script>
+    var vue = new Vue({
+        el: '#knowledge-my-category',
+        data() {
+            /*Secondary category validation*/
+            var validSecLevelCategory=(rule,value,callback)=>{
+                if(value=='' || value==undefined){
+                    callback(new Error('请输入二级类别'))
+                } else if(/[^\w\u4e00-\u9fa5]/.test(value)) {
+                    callback(new Error('不能输入特殊字符'))
+                } else {
+                    var repeatCat = false;
+                    this.validCategory.forEach((index) =>{
+                        if (index.secLevelCategory === value && index.firLevelCategory === this.categoryForm.firLevelCategory) {
+                            repeatCat = true;
+                        }
+                    })
+                       if (repeatCat) {
+                            callback(new Error('该类别已被创建,请填写新的'))
+                       } else {
+                            callback()
+                        }
+                }
+            };
+            return {
+                /* My category data*/
+                myCategoryVisible: false,
+                categoryLoad: false,
+                myCategoryTable: [],
+                classIsloaded: true,
+                dataTable: [],
+                pageTotal: 0,
+                pageSize: 5,
+                pageNum: 1,
+                hidePage: true,
+
+                /* Add category data*/
+                addCategoryModalVisible: false,
+                addCategoryBtn: false,
+                firLevelCategoryArr: [],
+                validCategory: [],
+                categoryForm: {
+                    firLevelCategory: '',
+                    secLevelCategory: '',
+                    checkItemInput: '',
+                    checkItemsArr: []
+                },
+                checkItem: '',
+                rules: {
+                    firLevelCategory: [{ required: true, message: '请选择一级类别', trigger: 'change' }],
+                    secLevelCategory: [{ required: true, validator: validSecLevelCategory, trigger: 'blur'}]
+                }
+            }
+        },
+        methods: {
+            beforCloseModal(done) {
+                if( this.dataTable.length === this.myCategoryTable.length) {
+                    var count = 0;
+                    this.myCategoryTable.map(index => {
+                        this.dataTable.map(item => {
+                            if (index._id === item._id) {
+                                count ++
+                            }
+                        })
+                    })
+                    if (count !== this.dataTable.length) {
+                        location.reload()
+                    }
+                } else {
+                    location.reload()
+                }
+                this.classIsloaded = true
+            },
+            handleSizeChange (size) {
+                this.pagesize = size;
+            },
+            // 初始页currentPage、初始每页数据数pagesize和数据data
+            handleCurrentChange (index) {
+                this.pageNum = index
+            },
+            showMyCategoryModal(num) {
+                this.myCategoryVisible = true;
+                this.categoryLoad = true;
+                axios.get('/api/myCategory/get').then((res) => {
+                    if (res.data.success) {
+                        this.myCategoryTable = res.data.model.getCategory;
+                        this.firLevelCategoryArr = res.data.model.firCategoryArr;
+                        this.validCategory = res.data.model.allCategory;
+                        if(this.classIsloaded) {
+                            this.classIsloaded = false
+                            this.dataTable = this.myCategoryTable
+                            num = 1
+                        }
+
+                        this.pageTotal = this.myCategoryTable.length
+                        this.getCurrentData(num)
+                    }
+                    this.categoryLoad = false
+                }).catch((res) => { console.log(res) })
+            },
+            getCurrentData(num) {
+                this.pageNum = num
+                if (this.pageTotal > this.pageSize) {
+                    this.hidePage = false
+                } else {
+                    this.hidePage = true
+                }
+            },
+            handleDelete(index, row) {
+                if (row.articleLen == 0) {
+                    if (confirm('确定删除该类别吗')) {
+                        axios.post('/api/category/delete', row).then((res) => {
+                            if (res.data.success) {
+                                if (parseInt((this.pageTotal)/5) < this.pageNum && ((this.pageTotal-1)/5)%1 === 0) {
+                                    var num = this.pageNum - 1
+                                } else {
+                                    var num = this.pageNum
+                                }
+                                this.showMyCategoryModal(num)
+                                this.$message({
+                                    message: res.data.message,
+                                    type: 'success',
+                                    center: true
+                                });
+                            }
+                        }).catch((res) => { console.log(res) })
+                    }
+                } else if (row.articleLen > 10) {
+                    this.$message({
+                        message: '该类别下的文章较多，不允许删除',
+                        type: 'error',
+                        center: true
+                    });
+                } else {
+                    if (confirm('删除该类别并会删除该类别下的所有文章, 确定删除类别吗？')) {
+                        axios.post('/api/category/delete', row).then((res) => {
+                            if (res.data.success) {
+                                if (parseInt((this.pageTotal)/5) < this.pageNum && ((this.pageTotal-1)/5)%1 === 0) {
+                                    var num = this.pageNum - 1
+                                } else {
+                                    var num = this.pageNum
+                                }
+                                this.showMyCategoryModal(num)
+                                this.$message({
+                                    message: res.data.message,
+                                    type: 'success',
+                                    center: true
+                                });
+                            }
+                        }).catch((res) => { console.log(res) })
+                    }
+                }
+            },
+
+            /* Add article */
+            showCategoryModal() {
+                this.addCategoryBtn = false;
+                this.addCategoryModalVisible = true;
+            },
+            hideCategoryModal(formName) {
+                this.addCategoryModalVisible = false;
+                this.$refs[formName].resetFields()
+            },
+            handleClose(val) {
+                this.categoryForm.checkItemsArr.splice(this.categoryForm.checkItemsArr.indexOf(val), 1);
+            },
+            submitCheckItem() {
+                this.categoryForm.checkItemsArr.push(this.categoryForm.checkItemInput);
+                this.categoryForm.checkItemInput = '';
+            },
+            onSubmit(formName) {
+                this.$refs[formName].validate((valid) => {
+                    if (valid) {
+                        this.addCategoryBtn = true;
+                        var data = JSON.stringify(this.categoryForm)
+                        data = encodeURIComponent(data)
+                        axios.post('/api/category/add', data).then((res) => {
+                            if (res.data.success) {
+                                this.$message({
+                                    message: res.data.message,
+                                    type: 'success',
+                                    center: true
+                                });
+                                this.hideCategoryModal(formName)
+                                var num = 1
+                                this.showMyCategoryModal(num)
+                            } else {
+                                this.$message({
+                                    message: res.data.message,
+                                    type: 'error',
+                                    center: true
+                                });
+                             }
+                        }).catch((err) => { console.log(err) })
+                    }
+                })
+
+            },
+        }
+    })
+</script>`

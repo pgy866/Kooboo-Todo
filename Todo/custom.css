@@ -1,0 +1,212 @@
+body {
+	margin: 0;
+}
+
+a {
+    text-decoration: none;
+    color: #000;
+}
+
+a:hover {
+	text-decoration: none;
+}
+
+button {
+	outline: none;
+}
+
+ul,
+li {
+    list-style: none;
+    margin-left: 0;
+    padding-left: 0;
+}
+
+.page {
+	display: flex;
+    flex-direction: row;
+    position: absolute;
+    bottom: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+}
+
+.icon-lg {
+	font-size: 30px;
+}
+
+.icon-md {
+	font-size: 24px;
+}
+
+.icon-sm {
+	font-size: 20px;
+}
+
+.flex-box {
+    display: flex;
+    justify-content: space-between;
+}
+
+.overlay {
+    position: fixed; 
+    top: 0; 
+    right: 0; 
+    bottom: 0; 
+    left: 0;
+    z-index: -1;
+}
+
+.clickable {
+    color:#409EFF;
+}
+
+.unclickable {
+    color:#999;
+}
+
+.margin-right-10 {
+    margin-right: 10px;
+}
+.margin-top-10 {
+    margin-top: 10px;
+}
+
+/*  menu  */
+.menu {
+    width: 90px;
+    min-height: 100%;
+    background: #eee;
+    /* background: rgba(209,208,214); */
+}
+
+.menu .menu-main {
+    width: 100%;
+    height: 65%;
+}
+
+.main-extra>i {
+    display: block!important;
+}
+.main-extra .show-message {
+    text-align: center;
+}
+
+.menu-main i {
+    display: block!important;
+    text-align: center;
+    margin-top: 40px;
+    padding: 10px 0 10px 0;
+}
+
+.username,
+.logout {
+    display: inline-block;
+    margin-top: 10px;
+    width: 70px;
+}
+
+.username {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.el-icon-circle-close-outline {
+    color: red;
+}
+.el-icon-circle-plus-outline {
+    color: #409EFF;
+    margin-right: 10px;
+}
+
+.box-card .member {
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+}
+
+.text {
+    font-size: 14px;
+}
+
+.item {
+    margin-bottom: 18px;
+}
+
+.clearfix:before,
+.clearfix:after {
+    display: table;
+    content: "";
+}
+
+.clearfix:after {
+    clear: both
+}
+
+.box-card {
+    width: 380px;
+}
+
+div#memberForm {
+    position: relative;
+}
+
+.main-extra .el-card.is-always-shadow {
+    position: absolute;
+    left: 75px;
+    bottom: 12%;
+    z-index: 99;
+}
+
+#memberForm .el-input {
+    width: 78%;
+}
+
+#search-btn {
+    display: inline-block;
+    width: 20%;
+}
+
+#search-error {
+    color: brown;
+}
+
+/*  aside  */
+.aside {
+	min-width: 13%;
+    min-height: 100%;
+    border-right: 1px solid #eee;
+}
+
+.aside .active {
+    background: #eee;
+    /* background: rgba(209,208,214); */
+}
+
+/*  main  */
+.page>.tab-content {
+    width: 100%;
+
+}
+
+/*scrollbar*/
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset006pxrgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.1);
+    -webkit-box-shadow: inset006pxrgba(0, 0, 0, 0.5);
+}
+
+::-webkit-scrollbar-thumb:window-inactive {
+    background: rgba(255, 0, 0, 0.4);
+}

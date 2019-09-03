@@ -1,0 +1,305 @@
+<div role="tabpanel" class="tab-pane" id="date-task-overview">
+    <ul class="nav nav-tabs" role="tablist">
+        <li role="presentation" class="active"><a href="#my-work" aria-controls="my-work" role="tab" data-toggle="tab">我的工作概况</a></li>
+        <li role="presentation"><a href="#staff-work" aria-controls="staff-work" role="tab" data-toggle="tab">员工工作概况</a>
+        </li>
+        <li role="presentation"><a href="#next-week" aria-controls="next-week" role="tab" data-toggle="tab">未来七天工作预览</a>
+        </li>
+    </ul>
+
+    <!-- My job description -->
+    <div class="tab-content">
+        <div role="tabpanel" class="tab-pane active" id="my-work">
+            <template>
+                <el-table :data="myJobData.slice((myJobPageNum-1)*myJobPageSize, myJobPageNum*myJobPageSize)"
+                            style="width: 100%"
+                            :row-class-name="tableRowClassName"
+                            v-loading="myJobLoading">
+                    <el-table-column type="expand">
+                        <template slot-scope="scope">
+                            <el-form label-position="left" class="demo-table-expand">
+                                <el-form-item label="检查项:" v-if="scope.row.subTasks">
+                                    <el-checkbox v-for="item in scope.row.subTasks" :label="item._id" :key="item._id" v-model="item.isCheck" disabled="">
+                                        {{item.taskItem}}
+                                    </el-checkbox>
+                                </el-form-item>
+                                <el-form-item label="描述:">
+                                    <span v-html="scope.row.desc"></span>
+                                </el-form-item>
+                            </el-form>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="title" label="任务标题" min-width="12%"></el-table-column>
+                    <el-table-column prop="secondCategory" label="任务类别" min-width="12%"></el-table-column>
+                    <el-table-column prop="status" label="任务状态" min-width="12%"> </el-table-column>
+                    <el-table-column prop="planDate" label="任务开始时间" min-width="15%"></el-table-column>
+                    <el-table-column prop="actualDate" label="任务完成时间" min-width="15%"></el-table-column>
+                    <el-table-column prop="delayTime" label="延迟天数" min-width="10%"></el-table-column>
+                    <el-table-column prop="creator" label="创建人" min-width="12%"></el-table-column>
+                </el-table>
+                <el-tag class="num-tag-left">共{{myJobData.length}}条</el-tag>
+                <el-pagination
+                        layout="prev, pager, next"
+                        :page-size="myJobPageSize"
+                        @size-change="handleSizeChange($event,'myJobData')"
+                        @current-change="handleCurrentChange($event,'myJobData')"
+                        :hide-on-single-page="myJobHidePage"
+                        :current-page="myJobPageNum"
+                        :total="myJobPageTotal">
+                </el-pagination>
+            </template>
+        </div>
+        <!-- Staff work profile -->
+        <div role="tabpanel" class="tab-pane" id="staff-work">
+            <template>
+                <el-table :data="employeeJobData.slice((employeePageNum-1)*employeePageSize, employeePageNum*employeePageSize)"
+                            style="width: 100%"
+                            :row-class-name="tableRowClassName"
+                            v-loading="employeeDataLoading">
+                    <el-table-column type="expand" min-width="10%">
+                        <template slot-scope="scope">
+                            <el-form label-position="left" class="demo-table-expand">
+                                <el-form-item label="检查项:" v-if="scope.row.subTasks">
+                                    <el-checkbox v-for="item in scope.row.subTasks" :label="item._id" :key="item._id" v-model="item.isCheck" disabled="">
+                                        {{item.taskItem}}
+                                    </el-checkbox>
+                                </el-form-item>
+                                <el-form-item label="描述:">
+                                    <span v-html="scope.row.desc"></span>
+                                </el-form-item>
+                            </el-form>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="assignUser" label="用户" min-width="10%"></el-table-column>
+                    <el-table-column prop="title" label="任务标题" min-width="12%"></el-table-column>
+                    <el-table-column prop="secondCategory" label="任务类别" min-width="12%"></el-table-column>
+                    <el-table-column prop="status" label="任务状态" min-width="12%"></el-table-column>
+                    <el-table-column prop="planDate" label="任务开始时间" min-width="15%"></el-table-column>    
+                    <el-table-column prop="actualDate" label="任务完成时间" min-width="15%"></el-table-column>
+                    <el-table-column prop="delayTime" label="延迟天数" min-width="12%"></el-table-column>
+                </el-table>
+                <el-tag class="num-tag-left">共{{employeeJobData.length}}条</el-tag>
+                <el-pagination
+                            layout="prev, pager, next"
+                            :page-size="employeePageSize"
+                            @size-change="handleSizeChange($event,'employeeJobData')"
+                            @current-change="handleCurrentChange($event,'employeeJobData')"
+                            :hide-on-single-page="employeeHidePage"
+                            :current-page="employeePageNum"
+                            :total="employeePageTotal">
+                </el-pagination>
+            </template>
+        </div>
+        <!-- Preview of the next seven days' work -->
+        <div role="tabpanel" class="tab-pane" id="next-week">
+            <template>
+                <el-table :data="todayAfterData.slice((todayPageNum-1)*todayPageSize, todayPageNum*todayPageSize)"
+                            style="width: 100%"
+                            v-loading="todayDataLoading">
+                    <el-table-column type="expand">
+                        <template slot-scope="scope">
+                            <el-form label-position="left" class="demo-table-expand">
+                                <el-form-item label="检查项:" v-if="scope.row.subTasks.length > 0">
+                                    <span v-for="(item, index) in scope.row.subTasks" :key="item._id" class="task-check-item"> {{index+1}}. {{item.checkItem}}</span>
+                                </el-form-item>
+                                <el-form-item label="描述:">
+                                    <span v-html="scope.row.desc"></span>
+                                </el-form-item>
+                            </el-form>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="title" label="任务标题" min-width="20%"> </el-table-column>
+                    <el-table-column prop="secondCategory" label="任务类别" min-width="20%"></el-table-column>
+                    <el-table-column prop="planDate" label="计划完成时间" min-width="20%"></el-table-column>
+                    <el-table-column prop="creator" label="创建人" min-width="20%"></el-table-column>
+                </el-table>
+                <el-tag class="num-tag-left">共{{todayAfterData.length}}条</el-tag>
+                <el-pagination
+                    layout="prev, pager, next"
+                    :page-size="todayPageSize"
+                    @size-change="handleSizeChange($event,'todayAfterData')"
+                    @current-change="handleCurrentChange($event,'todayAfterData')"
+                    :hide-on-single-page="todayHidePage"
+                    :current-page="todayPageNum"
+                    :total="todayPageTotal">
+                </el-pagination>
+            </template>
+        </div>
+    </div>
+</div>
+<style>
+    .el-table .warning-row {
+        background: oldlace;
+    }
+
+    .el-table .success-row {
+        background: #f0f9eb;
+    }
+
+    .el-table .error-row {
+        background: rgba(255, 0, 0, .16);
+    }
+    .num-tag-left {
+        float: left;
+        margin: 20px 0 0 2% !important;
+    }
+</style>
+
+<script>
+    var vue = new Vue({
+        el: "#date-task-overview",
+        data() {
+            return {
+                /*My job description*/
+                myJobData: [],
+                myJobPageTotal: 0,
+                myJobPageSize: 10,
+                myJobPageNum: 1,
+                myJobHidePage: true,
+
+                /*Staff work profile*/
+                employeeJobData: [],
+                employeePageTotal: 0,
+                employeePageSize: 10,
+                employeePageNum: 1,
+                employeeHidePage: true,
+                employeeDataLoading: false,
+
+                /* Preview of the next seven days' work */
+                todayAfterData: [],
+                todayPageTotal: 0,
+                todayPageSize: 10,
+                todayPageNum: 1,
+                todayHidePage: true,
+                todayDataLoading: false
+            }
+        },
+        created() {
+            this.getMyJobTable()
+        },
+        methods: {
+            tableRowClassName({ row, rowIndex }) {
+                if (row.completeStatus === 'False') {
+                    return 'error-row'
+                }
+            },
+            handleSizeChange (size, name) {
+                if (name === 'myJobData') {
+                    this.myJobPageSize = size;
+                } else if (name === 'employeeJobData') {
+                    this.employeePageSize = size;
+                } else if (name === 'todayAfterData') {
+                    this.todayPageSize = size;
+                }
+            },
+            handleCurrentChange (index, name) {
+                if (name === 'myJobData') {
+                    this.myJobPageNum = index
+                } else if (name === 'employeeJobData') {
+                    this.employeePageNum = index
+                } else if (name === 'todayAfterData') {
+                    this.todayPageNum = index
+                }
+            },
+            getMyJobTable() {
+                this.todayDataLoading = true
+                this.employeeDataLoading = true
+                this.myJobLoading = true
+                var setHoursDate = new Date(new Date().setHours(0, 0, 0, 0)).getTime();
+                axios.get('/api/jobOverview/get').then((res) => {
+                    if (res.data.success) {
+                        /*uerJobData*/
+                        if (res.data.model.uerJobData) {
+                            this.myJobData = res.data.model.uerJobData
+                            this.myJobData.forEach(item => {
+                                if (item.secondCategory == "") {
+                                    item.secondCategory = '无'
+                                }
+                                if (item.desc == "") {
+                                    item.desc = '无'
+                                }
+                                if (item.actualDate == "") {
+                                    item.actualDate = '-'
+                                }
+                                if(item.delayTime == "") {
+                                    item.delayTime = Math.floor((setHoursDate - item.timeStamp)/86400000)
+                                }  
+                                if(item.completeStatus == 'True') {
+                                    item.status = '已完成'
+                                } else {
+                                    item.status = '未完成'
+                                }
+                            })
+                        }
+                        this.myJobPageTotal = this.myJobData.length
+                        if (this.myJobPageTotal > this.myJobPageSize) { 
+                            this.myJobHidePage = false 
+                        }
+
+                        /*employeeJobData*/
+                        var data = res.data.model.employeeJobData
+                        if (data) {
+                            var member = res.data.model.allMembers
+                            var employeeData = [];
+                            member.forEach(index => {
+                                /** Filter data to match employee's outstanding task data */
+                                data.forEach(function(item) {
+                                    if (index.employee == item.assignUser) {
+                                        employeeData.push(item)
+                                    }
+                                })
+                            })
+                            this.employeeJobData = employeeData
+                            if (this.employeeJobData) {
+                                this.employeeJobData.forEach(item =>{
+                                    if (item.secondCategory == "") {
+                                        item.secondCategory = '无'
+                                    }
+                                    if (item.desc == "") {
+                                        item.desc = '无'
+                                    }
+                                    if (item.actualDate == "") {
+                                        item.actualDate = '-'
+                                    }
+                                    if(item.delayTime == "") {
+                                        item.delayTime = Math.floor((setHoursDate - item.timeStamp)/86400000)
+                                    }
+                                
+                                    if(item.completeStatus == 'True') {
+                                        item.status = '已完成'
+                                    } else {
+                                        item.status = '未完成'
+                                    }
+                                })
+                            }
+                        }
+                        this.employeePageTotal = this.employeeJobData.length
+                        if (this.employeePageTotal > this.employeePageSize) { 
+                            this.employeeHidePage = false 
+                        }
+                        this.employeeDataLoading = false
+                        this.myJobLoading = false
+                    }
+                }).catch(error => console.log(error))
+
+                /*todayAfterData*/
+                axios.get('/api/seventDay/get').then((res) =>{
+                    if(res.data.success) {
+                        this.todayAfterData = res.data.model
+                        this.todayAfterData.sort(function(a, b) {
+                            return b.planDate < a.planDate ? 1 : -1;
+                        })
+                        this.todayAfterData.forEach(index => {
+                            index.planDate = moment(index.planDate).format('LL')
+                        });
+                        this.todayPageTotal = this.todayAfterData.length
+                        if (this.todayPageTotal > this.todayPageSize) {
+                            this.todayHidePage = false 
+                        }
+                        this.todayDataLoading = false
+                    }
+                }).catch(error => console.log(error))
+            }
+        }
+    })
+</script>

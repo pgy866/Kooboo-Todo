@@ -1,0 +1,10 @@
+<layout id="knowledge">
+    <placeholder id="menu" k-omit="">
+        <view id="menu"></view>
+    </placeholder>
+    <placeholder id="main" k-omit="">
+        <view id="knowledge-main"></view>
+        <view id="knowledge-my-article"></view>
+        <view id="knowledge-my-category"></view>
+    </placeholder>
+</layout>

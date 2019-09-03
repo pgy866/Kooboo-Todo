@@ -1,0 +1,328 @@
+<script engine="kscript">
+    var username = k.user.userName;
+    if (!username) {
+        k.response.redirect("/login");
+    }
+</script>
+<div id="knowledge-article-detail" class="show-knowledge">
+    <!-- Article detail page -->
+    <el-card class="box-card-article-detail">
+        <a class="el-back el-icon-back" :href="'/knowledge'+ paramsNode" title="返回文章列表">返回主页</a>
+        <div class="article-detail-box">
+            <div class="article-header">             
+                <el-tooltip effect="light" content="标题" placement="left">
+                    <h3>{{articleContent.title}}</h3>
+                </el-tooltip>
+                <span class="margin-right-10 unclickable">作者：{{articleContent.creator}}</span>
+                <span class="margin-right-10 unclickable">发布时间：{{articleContent.date}}</span>
+            </div>
+            <div class="article-detail">
+                <div class="main-article">
+                    <div class="main-content">
+                        <div v-if="articleContent.desc">
+                            <h4>描述</h4>
+                            <p class="detail-desc" v-html="articleContent.desc"></p>
+                        </div>
+                        <div v-if="attachList" class="form-item attachment">
+                            <label>附件</label>
+                            <ul>
+                                <li v-for="item in attachList">
+                                    <a :href="item.url" target="_blank" class="clickable">
+                                        <i class="el-icon-document margin-right-10"></i>{{item.name}}
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <!-- Article Comment -->
+                <div class="comment-part" id="commentArea">
+                    <div class="comment-form">
+                        <h4>评论</h4>
+                        <el-form :model="commentForm" :rules="rules" ref="commentForm" v-loading="commentLoading">
+                            <el-form-item prop="comment">
+                                <el-input type="textarea" :autosize="{ minRows: 3, maxRows: 10}" placeholder="请输入内容" v-model="commentForm.comment">
+                                </el-input>
+                            </el-form-item>
+                            <el-form-item prop="files">
+                                <el-upload class="btn-group margin-top-10" action="string" :on-remove="removeCommentFiles" :file-list="fileList" :http-request="uploadCommentFiles" :before-upload="beforeAvatarUpload" :limit="3" :on-exceed="handleExceed">
+                                    <el-button class="pull-left margin-right-10" size="small" type="primary" @click="onSubmit('commentForm')">
+                                            发表评论</el-button>
+                                    <el-button slot="trigger" size="small" type="primary" plain="" class="upload-file-btn">
+                                        <i class="el-icon-upload upload-comment-file"></i>
+                                    </el-button>
+                                    <div slot="tip" class="el-upload__tip">文件必须小于100 M</div>
+                                </el-upload>
+                            </el-form-item>
+                        </el-form>
+                    </div>
+                    <!-- Show comment list -->
+                    <div calss="comment-list">
+                        <div v-for="com in commentList" class="chat-block">
+                            <div class="user-avatar remove-order">{{com.creator.split('')[0]}}</div>
+                            <div class="chat-panel"><span class="margin-right-10">{{com.creator}}</span>
+                                <span>{{com.time}}</span>
+                                <a v-if="com.creator == currentUser" class="pull-right delete" @click="deleteComment(com._id)"><i class="el-icon-delete icon-sm"></i></a>
+                                <p style="margin-bottom: 0px;">{{com.content}}</p>
+                                <ul v-if="com.attach">
+                                    <li v-for="item in com.attach">
+                                        <a :href="item.url" target="_blank" class="clickable">
+                                            <i class="el-icon-document margin-right-10"></i>{{item.name}}
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div> 
+            </div>
+        </div> 
+        
+    </el-card>
+</div>
+
+<script>
+    var vue = new Vue({
+        el: '#knowledge-article-detail',
+        data() {
+            /*评论内容验证*/
+            var validTitle =(rule,value,callback)=>{
+                if(value == ''|| value == undefined){
+                    callback(new Error('请输入评论'))
+                } else {
+                    if(/^\s+|\s+$/.test(value)){
+                        callback(new Error('内容首尾不能出现空格'))
+                    } else {
+                        callback()
+                    }
+                }
+            };
+            return {
+                /*article detail data*/
+                articleContent: [],
+                attachList: [],
+                paramsNode: '',
+                paramsId: '',
+
+                /*comment data*/
+                commentLoading: false,
+                currentUser: '',
+                fileList: [],
+                filesName: [],
+                commentList: [],
+                commentForm: {
+                    comment: '',
+                    files: [],
+                },
+                rules: {
+                    comment: [
+                        { required: true, validator: validTitle, trigger: 'blur' }
+                    ],
+                }
+            }
+        },
+        created () {
+          this.getDetailData()
+        },
+        methods: {
+            getDetailData() {
+                var locationUrl = location.search; //获取url中"?"符后的字串
+                var theRequest = {};
+                if (locationUrl.indexOf("?") != -1) {
+                    var str = locationUrl.substr(1);
+                    strArr = str.split("&");
+                    for(var i = 0; i < strArr.length; i ++) {
+                        theRequest[strArr[i].split("=")[0]]=unescape(strArr[i].split("=")[1]);
+                    }
+                    //获取定位参数
+                    this.paramsId = theRequest.id
+                    if (theRequest.firstNode && theRequest.secondNode) {
+                        this.paramsNode = "?" + strArr[1] + "&" + strArr[2] + "&" + strArr[3]
+                    } else if (theRequest.firstNode && !theRequest.secondNode) {
+                        this.paramsNode = "?" + strArr[1] + "&" + strArr[2]
+                    } else {
+                        this.paramsNode = "?" + strArr[1]
+                    }
+
+                    axios.post('/api/detail/get', {id: this.paramsId}).then((res) => {
+                        if (res.data.success) {
+                            this.currentUser = res.data.model.username;
+                            this.articleContent = res.data.model.article;
+                            this.commentList = res.data.model.comments;
+                            this.attachList = this.articleContent.attach;
+                        } else {
+                                this.$message({
+                                    message: '跳转失败，找不到文章!',
+                                    type: 'error',
+                                    center: true
+                                });
+                        }
+                    })
+                }
+            },
+            removeCommentFiles(file) {
+                var i = this.filesName.indexOf(file.name);
+                if (i != -1) {
+                    this.filesName.splice(i, 1);
+                    this.fileList.splice(i, 1);
+                }
+            },
+            uploadCommentFiles(item) {
+                var i = this.filesName.indexOf(item.file.name);
+                if (i === -1) {
+                    this.filesName.push(item.file.name);
+                    this.fileList.push(item.file);
+                }
+            },
+            handleExceed(file){
+                this.$message({
+                    message: '最多只能上传三个文件!',
+                    type: 'warning',
+                    center: true
+                });
+            },
+            
+            beforeAvatarUpload(file) {
+                var testmsg = file.name.indexOf('.')
+                var nowSize =  file.size / 1024 / 1024
+                const isLt100M = nowSize < 100
+                const isLt0M = nowSize === 0
+                const length = testmsg <= 120
+                if (!length) {
+                    this.$message({
+                        message: '当前上传文件名不能超过120字符!',
+                        type: 'warning',
+                        center: true
+                    });
+                }
+                if(!isLt100M) {
+                    this.$message({
+                    message: '当前上传文件大小必须小于100MB!',
+                    type: 'warning',
+                    center: true
+                    });
+                }
+                if(isLt0M) {
+                    this.$message({
+                    message: '当前上传文件大小不能为0MB!',
+                    type: 'warning',
+                    center: true
+                    });
+                }
+                return isLt100M && length && !isLt0M
+			},
+            onSubmit(formName) {
+                this.$refs[formName].validate((valid) => {
+                    if (valid) {
+                        let fileLength = 0;
+                        let formData = new FormData();
+                        formData.append('articleId', this.paramsId);
+                        formData.append('articleTitle', this.articleContent.title);
+                        formData.append('content', this.commentForm.comment);
+                        formData.append('articleCreator', this.articleContent.creator);
+
+                        this.fileList.map(index => {
+                            var filename = index.name.replace(/[#|+|;|\s]/g, "")
+                            fileLength = fileLength + index.size
+                            formData.append('files', index, filename);
+                        })
+                        const fileLengthLimit = fileLength / 1024 / 1024
+                        if (fileLengthLimit < 100) {
+                            this.commentLoading = true
+                            axios.post('/api/comment/add', formData).then((res) => {
+                                if (res.data.success) {
+                                    this.commentList = res.data.model;
+                                    this.commentForm.comment = '';
+                                    this.fileList = [];
+                                    this.filesName = []
+                                    this.commentLoading = false
+                                    this.$message({
+                                        message: res.data.message,
+                                        type: 'success',
+                                        center: true
+                                    });
+                                } else {
+                                    this.$message({
+                                        message: res.data.message,
+                                        type: 'error',
+                                        center: true
+                                    });
+                                    this.commentLoading = false
+                                }
+                            }).catch((err) => {
+                                this.$message({
+                                    message: '附件上传错误',
+                                    type: 'error',
+                                    center: true
+                                });
+                                this.commentLoading = false
+                            })
+                            
+                        } else {
+                            this.$message({
+                                message: '当前上传总的文件大小必须小于100MB!',
+                                type: 'warning',
+                                center: true
+                            });
+                        }
+                    }
+                })
+                
+            },
+            deleteComment(id) {
+                if (confirm("确定删除该评论吗？")) {
+                    var deleteData = {
+                        articleId: this.paramsId,
+                        commentId: id
+                    }
+                    axios.post('/api/comment/delete', deleteData).then((res) => {
+                        if (res.data.success) {
+                            this.commentList = res.data.model;
+                        }
+                    })
+                }
+            },
+        },
+    })
+</script>
+<style>
+.main-content {
+    padding: 1%;
+}
+.show-knowledge {
+    overflow: hidden;
+}
+.show-knowledge .article-header h3 {
+    width: 90%;
+    height: 30px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+.show-knowledge .box-card-article-detail{
+    width: 95%;
+    margin: 20px auto;
+    height: 90%;
+}
+.show-knowledge .el-card__body {
+    height: 100%;
+}
+.show-knowledge .el-back{
+    color: #337ab7;
+    font-weight: 600;
+    font-size: 14px;
+}
+.show-knowledge .article-detail-box {
+    padding: 20px;
+    height: 100%;
+}
+.item {
+    margin: 4px;
+}
+.upload-file-btn {
+    padding: 6px 10px;
+}
+.upload-file-btn .upload-comment-file{
+    font-size: 18px;
+}
+</style>
